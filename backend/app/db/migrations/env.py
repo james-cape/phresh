@@ -53,7 +53,7 @@ def run_migrations_offline() -> None:
 
 if alembic.context.is_offline_mode():
     logger.info('Running migrations offline')
-    run_migrations_offline
+    run_migrations_offline()
 else:
     logger.info('Running migrations online')
-    run_migrations_online
+    run_migrations_online()
