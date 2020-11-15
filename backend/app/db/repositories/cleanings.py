@@ -1,4 +1,4 @@
-from add.db.repositories.base import BaseRepository
+from app.db.repositories.base import BaseRepository
 from app.models.cleaning import CleaningCreate
 from app.models.cleaning import CleaningUpdate
 from app.models.cleaning import CleaningInDB
