@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from databases import Database
-from applcore.config import DATABASE_URL
+from app.core.config import DATABASE_URL
 import logging
 
 
@@ -22,7 +22,7 @@ async def connect_to_db(app: FastAPI) -> None:
 async def close_db_connection(app: FastAPI) -> None:
     try:
         await app.state._db.disconnect()
-    except Exception as e
+    except Exception as e:
         logger.warn('--- DB DISCONNECT ERROR ---')
         logger.warn(e)
         logger.warn('--- DB DISCONNECT ERROR ---')
