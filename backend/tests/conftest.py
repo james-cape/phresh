@@ -17,7 +17,7 @@ from alembic.config import Config
 @pytest.fixture(scope='session')
 def docker() -> pydocker.APIClient:
     # base url is the unix socket we use to communicate with docker
-    return pydocker.APIClient(base_url='unix://var/run/docker/sock', version='auto')
+    return pydocker.APIClient(base_url='unix://var/run/docker.sock', version='auto')
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -29,7 +29,7 @@ def postgres_container(docker: pydocker.APIClient) -> None:
 
     DB actions persist across the entirety of the testing session.
     '''
-    warnings.filterwarnings('ignore', category=DepracationWarning)
+    warnings.filterwarnings('ignore', category=DeprecationWarning)
 
     # pull image from docker
     image = 'postgres:12.1-alpine'
