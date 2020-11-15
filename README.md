@@ -18,6 +18,7 @@ GET http://localhost:8000/api/cleanings/
 ## POST Create Cleaning
 #### Example request
 POST http://localhost:8000/api/cleanings/
+```
 Body: {
   "new_cleaning": {
     "name": "string",
@@ -26,8 +27,10 @@ Body: {
     "cleaning_type": "spot_clean"
   }
 }
+```
 
 #### Expected Response - 201
+```
 {
   "name": "string",
   "description": "string",
@@ -35,7 +38,9 @@ Body: {
   "cleaning_type": "spot_clean",
   "id": 0
 }
+```
 #### Expected Response - 422
+```
 {
   "detail": [
     {
@@ -47,6 +52,7 @@ Body: {
     }
   ]
 }
+```
 
 ### Interact with Docker server container using bash commands
 1. In a new Terminal run `docker ps`
