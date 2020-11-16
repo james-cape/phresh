@@ -3,8 +3,11 @@ from typing import List
 from fastapi import APIRouter
 from fastapi import Body
 from fastapi import Depends
+from fastapi import HTTPException
 
-from starlette.status import HTTP_201_CREATED
+from starlette.status import HTTP_200_OK  # TODO: swap starlette for fastapi
+from starlette.status import HTTP_201_CREATED  # TODO: swap starlette for fastapi
+from starlette.status import HTTP_404_NOT_FOUND  # TODO: swap starlette for fastapi
 
 from app.models.cleaning import CleaningCreate
 from app.models.cleaning import CleaningPublic
@@ -31,3 +34,15 @@ async def create_new_cleaning(
     created_cleaning = await cleanings_repo.create_cleaning(new_cleaning=new_cleaning)
 
     return created_cleaning
+
+
+@router.get('/{id}/', response_model=CleaningPublic, name='cleanings:get-cleaning-by-id')
+async def get_cleaning_by_id(
+    id: int, cleanings_repo: CleaningsRepository = Depends(get_repository(CleaningsRepository))
+) -> CleaningPublic:
+    cleaning = await cleanings_repo.get_cleaning_by_id(id=id)
+
+    if not cleaning:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail='No cleaning found with that id.')
+    
+    return cleaning

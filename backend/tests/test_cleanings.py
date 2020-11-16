@@ -3,11 +3,13 @@ import pytest
 from httpx import AsyncClient
 from fastapi import FastAPI
 
+from starlette.status import HTTP_200_OK  # TODO: swap starlette for fastapi
+from starlette.status import HTTP_201_CREATED  # TODO: swap starlette for fastapi
 from starlette.status import HTTP_404_NOT_FOUND  # TODO: swap starlette for fastapi
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY  # TODO: swap starlette for fastapi
-from starlette.status import HTTP_201_CREATED  # TODO: swap starlette for fastapi
 
 from app.models.cleaning import CleaningCreate
+from app.models.cleaning import CleaningInDB
 
 # decorate all tests with @pytest.mark.asyncio
 pytestmark = pytest.mark.asyncio
@@ -60,3 +62,11 @@ class TestCreateCleaning:
             app.url_path_for('cleanings:create-cleaning'), json={'new_cleaning': invalid_payload}
         )
         assert res.status_code == status_code
+
+
+class TestGetCleaning:
+    async def test_get_cleaning_by_id(self, app: FastAPI, client: AsyncClient) -> None:
+        res = await client.get(app.url_path_for('cleanings:get-cleaning-by-id', id=1))
+        assert res.status_code == HTTP_200_OK
+        cleaning = CleaningInDB(**res.json())
+        assert cleaning.id == 1
