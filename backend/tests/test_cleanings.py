@@ -42,3 +42,21 @@ class TestCreateCleaning:
 
         created_cleaning = CleaningCreate(**res.json())
         assert created_cleaning == new_cleaning
+
+    @pytest.mark.parametrize(
+        'invalid_payload, status_code',
+        (
+            (None, 422),
+            ({}, 422),
+            ({'name': 'test_name'}, 422),
+            ({'price': 10.00}, 422),
+            ({'name': 'test_name', 'description': 'test'}, 422),
+        ),
+    )
+    async def test_invalid_input_raises_error(
+        self, app: FastAPI, client: AsyncClient, invalid_payload: dict, status_code: int
+    ) -> None:
+        res = await client.post(
+            app.url_path_for('cleanings:create-cleaning'), json={'new_cleaning': invalid_payload}
+        )
+        assert res.status_code == status_code
