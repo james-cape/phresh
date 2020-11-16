@@ -16,14 +16,17 @@ from app.api.dependencies.database import get_repository
 
 router = APIRouter()
 
-@router.get('/')
-async def get_all_cleanings() -> List[dict]:
-    cleanings = [
-        {'id': 1, 'name': 'My house', 'cleaning_type': 'full_clean', 'price_per_hour': 29.99},
-        {'id': 2, 'name': "Someone else's house", 'cleaning_type': 'spot_clean', 'price_per_hour': 19.99},
-    ]
-
+@router.get('/', response_model=List[CleaningPublic], name='cleanings:get-all-cleanings')
+async def get_all_cleanings(
+    cleanings_repo: CleaningsRepository = Depends(get_repository(CleaningsRepository)),
+) -> List[CleaningPublic]:
+    # cleanings = [
+    #     {'id': 1, 'name': 'My house', 'cleaning_type': 'full_clean', 'price_per_hour': 29.99},
+    #     {'id': 2, 'name': "Someone else's house", 'cleaning_type': 'spot_clean', 'price_per_hour': 19.99},
+    # ]
+    cleanings = await cleanings_repo.get_all_cleanings()
     return cleanings
+    # return [{'id': 1, 'name': 'fake_cleaning', 'price': 0}]
 
 
 @router.post('/', response_model=CleaningPublic, name='cleanings:create-cleaning', status_code=HTTP_201_CREATED)
@@ -46,3 +49,4 @@ async def get_cleaning_by_id(
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail='No cleaning found with that id.')
     
     return cleaning
+
