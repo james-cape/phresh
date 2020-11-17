@@ -65,3 +65,16 @@ async def update_cleaning_by_id(
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail='No cleaning found with that ID.')
     
     return updated_cleaning
+
+
+@router.delete('/{id}', response_model=int, name='cleanings:delete-cleaning-by-id')
+async def delete_cleaning_by_id(
+    id: int = Path(..., ge=1, title='The ID of the cleaning to delete.'),
+    cleanings_repo: CleaningsRepository = Depends(get_repository(CleaningsRepository)),
+) -> int:
+    deleted_id = await cleanings_repo.delete_cleaning_by_id(id=id)
+
+    if not deleted_id:
+        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail='No cleaning found with that id.')
+    
+    return deleted_id
