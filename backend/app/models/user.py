@@ -9,6 +9,8 @@ from app.models.core import DateTimeModelMixin
 from app.models.core import IDModelMixin
 from app.models.core import CoreModel
 
+from app.models.token import AccessToken
+
 
 #  simple check for valid username
 def validate_username(username: str) -> str:
@@ -62,10 +64,10 @@ class UserPasswordUpdate(CoreModel):
     salt: str
 
 
-class UserInDB(IDModelMixin, UserBase):
+class UserInDB(IDModelMixin, DateTimeModelMixin, UserBase):
     password: constr(min_length=7, max_length=100)
     salt: str
 
 
 class UserPublic(IDModelMixin, DateTimeModelMixin, UserBase):
-    pass
+    access_token: Optional[AccessToken]
