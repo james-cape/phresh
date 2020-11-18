@@ -1,7 +1,23 @@
+import jwt
 import bcrypt
+
+from datetime import  datetime
+from datetime import  timedelta
+
 from passlib.context import CryptContext
 
+from app.core.config import SECRET_KEY
+from app.core.config import JWT_ALGORITHM
+from app.core.config import JWT_AUDIENCE
+from app.core.config import JWT_TOKEN_PREFIX
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+
+from app.models.token import JWTMeta
+from app.models.token import JWTCreds
+from app.models.token import JWTPayload
+
 from app.models.user import UserPasswordUpdate
+from app.models.user import UserInDB
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
@@ -31,3 +47,28 @@ class AuthService:
 
     def verify_password(self, *, password: str, salt: str, hashed_pw: str) -> bool:
         return pwd_context.verify(password + salt, hashed_pw)
+
+    def create_access_token_for_user(
+        self,
+        *,
+        user: UserInDB,
+        secret_key: str = str(SECRET_KEY),
+        audience: str = JWT_AUDIENCE,
+        expires_in: int = ACCESS_TOKEN_EXPIRE_MINUTES,
+    ) -> str:
+        if not user or not isinstance(user, UserInDB):
+            return None
+
+        jwt_meta = JWTMeta(
+            aud=audience,
+            iat=datetime.timestamp(datetime.utcnow()),
+            exp=datetime.timestamp(datetime.utcnow() + timedelta(minutes=expires_in)),
+        )
+        jwt_creds = JWTCreds(sub=user.email, username=user.username)
+        token_payload = JWTPayload(
+            **jwt_meta.dict(),
+            **jwt_creds.dict(),
+        )
+        access_token = jwt.encode(token_payload.dict(), secret_key, algorithm=JWT_ALGORITHM).decode('utf-8')
+
+        return access_token

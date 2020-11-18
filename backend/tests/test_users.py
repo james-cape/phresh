@@ -1,4 +1,13 @@
+from typing import List
+from typing import Union
+from typing import Type
+from typing import Optional
+
 import pytest
+
+import jwt
+
+from pydantic import ValidationError
 
 from httpx import AsyncClient
 from fastapi import FastAPI
@@ -10,8 +19,19 @@ from starlette.status import HTTP_401_UNAUTHORIZED  # TODO: swap starlette for f
 from starlette.status import HTTP_404_NOT_FOUND  # TODO: swap starlette for fastapi
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY  # TODO: swap starlette for fastapi
 
+from starlette.datastructures import Secret  # TODO: swap starlette
+
 from databases import Database
 
+from app.core.config import SECRET_KEY
+from app.core.config import JWT_ALGORITHM
+from app.core.config import JWT_AUDIENCE
+from app.core.config import JWT_TOKEN_PREFIX
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+
+from app.models.token import JWTMeta
+from app.models.token import JWTCreds
+from app.models.token import JWTPayload
 from app.models.user import UserCreate
 from app.models.user import UserInDB
 
@@ -109,3 +129,59 @@ class TestUserRegistration:
             salt=user_in_db.salt,
             hashed_pw=user_in_db.password,
         )
+
+
+class TestAuthTokens:
+    async def test_can_create_access_token_successfully(
+        self, app: FastAPI, client: AsyncClient, test_user: UserInDB
+    ) -> None:
+        access_token = auth_service.create_access_token_for_user(
+            user=test_user,
+            secret_key=str(SECRET_KEY),
+            audience=JWT_AUDIENCE,
+            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
+
+        creds = jwt.decode(access_token, str(SECRET_KEY), audience=JWT_AUDIENCE, algorithms=[JWT_ALGORITHM])
+        assert creds.get('username') is not None
+        assert creds['username'] == test_user.username
+        assert creds['aud'] == JWT_AUDIENCE
+
+    async def test_token_missing_user_is_invalid(self, app: FastAPI, client: AsyncClient) -> None:
+        access_token = auth_service.create_access_token_for_user(
+            user=None,
+            secret_key=str(SECRET_KEY),
+            audience=JWT_AUDIENCE,
+            expires_in=ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
+
+        with pytest.raises(jwt.PyJWTError):
+            jwt.decode(access_token, str(SECRET_KEY), audience=JWT_AUDIENCE, algorithms=[JWT_ALGORITHM])
+
+    @pytest.mark.parametrize(
+        'secret_key, jwt_audience, exception',
+        (
+            ('wrong-secret', JWT_AUDIENCE, jwt.InvalidSignatureError),
+            (None, JWT_AUDIENCE, jwt.InvalidSignatureError),
+            (SECRET_KEY, 'othersite:auth', jwt.InvalidAudienceError),
+            (SECRET_KEY, None, ValidationError),
+        ),
+    )
+    async def test_invalid_token_content_raises_error(
+        self,
+        app: FastAPI,
+        client: AsyncClient,
+        test_user: UserInDB,
+        secret_key: Union[str, Secret],
+        jwt_audience: str,
+        exception: Type[BaseException],
+    ) -> None:
+        with pytest.raises(exception):
+            access_token = auth_service.create_access_token_for_user(
+                user=test_user,
+                secret_key=str(secret_key),
+                audience=jwt_audience,
+                expires_in=ACCESS_TOKEN_EXPIRE_MINUTES,
+            )
+            
+            jwt.decode(access_token, str(SECRET_KEY), audience=JWT_AUDIENCE, algorithms=[JWT_ALGORITHM])
