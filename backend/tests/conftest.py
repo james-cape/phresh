@@ -128,7 +128,7 @@ async def test_user(db: Database) -> UserInDB:
 
 @pytest.fixture
 def authorized_client(client: AsyncClient, test_user: UserInDB) -> AsyncClient:
-    access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str[SECRET_KEY])
+    access_token = auth_service.create_access_token_for_user(user=test_user, secret_key=str(SECRET_KEY))
 
     client.headers = {
         **client.headers,
