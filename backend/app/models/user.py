@@ -9,6 +9,8 @@ from app.models.core import DateTimeModelMixin
 from app.models.core import IDModelMixin
 from app.models.core import CoreModel
 
+from app.models.token import AccessToken
+
 
 #  simple check for valid username
 def validate_username(username: str) -> str:
@@ -68,4 +70,4 @@ class UserInDB(IDModelMixin, UserBase):
 
 
 class UserPublic(IDModelMixin, DateTimeModelMixin, UserBase):
-    pass
+    access_token: Optional[AccessToken]

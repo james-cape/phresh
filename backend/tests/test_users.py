@@ -34,6 +34,7 @@ from app.models.token import JWTCreds
 from app.models.token import JWTPayload
 from app.models.user import UserCreate
 from app.models.user import UserInDB
+from app.models.user import UserPublic
 
 from app.db.repositories.users import UsersRepository
 
@@ -75,7 +76,7 @@ class TestUserRegistration:
         assert user_in_db.username == new_user['username']
 
         # check that the user returned in the response is equal to the user in the database
-        created_user = UserInDB(**res.json(), password='whatever', salt='123').dict(exclude={'password', 'salt'})
+        created_user = UserPublic(**res.json()).dict(exclude={'access_token', 'created_at', 'updated_at'})
         assert created_user == user_in_db.dict(exclude={'password', 'salt'})
     
     @pytest.mark.parametrize(
