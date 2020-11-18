@@ -64,7 +64,7 @@ class UserPasswordUpdate(CoreModel):
     salt: str
 
 
-class UserInDB(IDModelMixin, UserBase):
+class UserInDB(IDModelMixin, DateTimeModelMixin, UserBase):
     password: constr(min_length=7, max_length=100)
     salt: str
 
