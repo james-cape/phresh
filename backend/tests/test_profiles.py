@@ -44,3 +44,32 @@ class TestProfileCreate:
         user_profile = await profile_repo.get_profile_by_user_id(user_id=created_user.id)
         assert user_profile is not None
         assert isinstance(user_profile, ProfileInDB) 
+
+
+    
+    class TestProfileView:
+        async def test_authenticated_user_can_view_other_users_profile(
+            self, app: FastAPI, authorized_client: AsyncClient, test_user: UserInDB, test_user2: UserInDB
+        ) -> None:
+            res = await authorized_client.get(
+                app.url_path_for('profiles:get-profile-by-username', username=test_user2.username)
+            )
+            assert res.status_code == status.HTTP_200_OK
+            profile = ProfilePublic(**res.json())
+            assert profile.username == test_user2.username
+        
+        async def test_unregistered_users_cannot_access_other_users_profile(
+            self, app: FastAPI, client: AsyncClient, test_user2: UserInDB
+        ) -> None:
+            res = await client.get(
+                app.url_path_for('profiles:get-profile-by-username', username=test_user2.username)
+            )
+            assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+        async def test_no_profile_is_returned_when_username_matches_no_user(
+            self, app: FastAPI, authorized_client: AsyncClient
+        ) -> None:
+            res = await authorized_client.get(
+                app.url_path_for('profiles:get-profile-by-username', username='username_doesnt_match')
+            )
+            assert res.status_code == status.HTTP_404_NOT_FOUND
