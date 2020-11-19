@@ -57,7 +57,7 @@ class TestProfileView:
         assert res.status_code == status.HTTP_200_OK
         profile = ProfilePublic(**res.json())
         assert profile.username == test_user2.username
-    
+
     async def test_unregistered_users_cannot_access_other_users_profile(
         self, app: FastAPI, client: AsyncClient, test_user2: UserInDB
     ) -> None:
