@@ -1,8 +1,12 @@
 from typing import Optional
+from typing import Union
 from enum import Enum
 
 from app.models.core import IDModelMixin
+from app.models.core import DateTimeModelMixin
 from app.models.core import CoreModel
+
+from app.models.user import UserPublic
 
 
 class CleaningType(str, Enum):
@@ -30,11 +34,12 @@ class CleaningUpdate(CleaningBase):
     cleaning_type: Optional[CleaningType]
 
 
-class CleaningInDB(IDModelMixin, CleaningBase):
+class CleaningInDB(IDModelMixin, DateTimeModelMixin, CleaningBase):
     name: str
     price: float
     cleaning_type: CleaningType
+    owner: Union[int, UserPublic]
 
 
-class CleaningPublic(IDModelMixin, CleaningBase):
+class CleaningPublic(CleaningInDB):
     pass

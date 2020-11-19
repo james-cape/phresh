@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import HTTPException
+from fastapi import status
 
 from starlette.status import HTTP_400_BAD_REQUEST
 
@@ -10,11 +11,13 @@ from app.models.cleaning import CleaningCreate
 from app.models.cleaning import CleaningUpdate
 from app.models.cleaning import CleaningInDB
 
+from app.models.user import UserInDB
+
 
 CREATE_CLEANING_QUERY = """
-    INSERT INTO cleanings (name, description, price, cleaning_type)
-    VALUES (:name, :description, :price, :cleaning_type)
-    RETURNING id, name, description, price, cleaning_type;
+    INSERT INTO cleanings (name, description, price, cleaning_type, owner)
+    VALUES (:name, :description, :price, :cleaning_type, :owner)
+    RETURNING id, name, description, price, cleaning_type, owner, created_at, updated_at;
 """
 
 GET_CLEANING_BY_ID_QUERY = """
@@ -48,9 +51,10 @@ class CleaningsRepository(BaseRepository):
     '''
     All database actions associated with the Cleaning resource
     '''
-    async def create_cleaning(self, *, new_cleaning: CleaningCreate) -> CleaningInDB:
-        query_values = new_cleaning.dict()
-        cleaning = await self.db.fetch_one(query=CREATE_CLEANING_QUERY, values=query_values)
+    async def create_cleaning(self, *, new_cleaning: CleaningCreate, requesting_user: UserInDB) -> CleaningInDB:
+        cleaning = await self.db.fetch_one(
+            query=CREATE_CLEANING_QUERY, values={**new_cleaning.dict(), 'owner': requesting_user.id}
+        )
 
         return CleaningInDB(**cleaning)
     
