@@ -11,6 +11,8 @@ from app.models.core import CoreModel
 
 from app.models.token import AccessToken
 
+from app.models.profile import ProfilePublic
+
 
 #  simple check for valid username
 def validate_username(username: str) -> str:
@@ -67,7 +69,9 @@ class UserPasswordUpdate(CoreModel):
 class UserInDB(IDModelMixin, DateTimeModelMixin, UserBase):
     password: constr(min_length=7, max_length=100)
     salt: str
+    profile: Optional[ProfilePublic]
 
 
 class UserPublic(IDModelMixin, DateTimeModelMixin, UserBase):
     access_token: Optional[AccessToken]
+    profile: Optional[ProfilePublic]
