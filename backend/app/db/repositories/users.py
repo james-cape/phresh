@@ -8,10 +8,13 @@ from databases import Database
 from typing import Optional
 
 from app.db.repositories.base import BaseRepository
+from app.db.repositories.profiles import ProfilesRepository
 
 from app.models.user import UserCreate
 from app.models.user import UserUpdate
 from app.models.user import UserInDB
+
+from app.models.profile import ProfileCreate
 
 from app.services import auth_service
 
@@ -40,6 +43,7 @@ class UsersRepository(BaseRepository):
     def __init__(self, db: Database) -> None:
         super().__init__(db)
         self.auth_service = auth_service
+        self.profile_repo = ProfilesRepository(db)
 
     async def get_user_by_email(self, *, email: EmailStr) -> UserInDB:
         user_record = await self.db.fetch_one(query=GET_USER_BY_EMAIL_QUERY, values={'email': email})
@@ -78,15 +82,20 @@ class UsersRepository(BaseRepository):
         new_user_params = new_user.copy(update=user_password_update.dict())
         created_user = await self.db.fetch_one(query=REGISTER_NEW_USER_QUERY, values=new_user_params.dict())
 
+        await self.profile_repo.create_profile_for_user(profile_create=ProfileCreate(user_id=created_user['id']))
+
         return UserInDB(**created_user)
 
 
     async def authenticate_user(self, *, email: EmailStr, password: str) -> Optional[UserInDB]:
         # make user user exists in db
         user = await self.get_user_by_email(email=email)
+
         if not user:
             return None
+
         # if submitted password doesn't match
         if not self.auth_service.verify_password(password=password, salt=user.salt, hashed_pw=user.password):
             return None
+
         return user

@@ -100,6 +100,7 @@ def create_profiles_table() -> None:
         sa.Column('bio', sa.Text, nullable=True, server_default=''),
         sa.Column('image', sa.Text, nullable=True),
         sa.Column('user_id', sa.Integer, sa.ForeignKey('users.id', ondelete='CASCADE')),
+        *timestamps(),
     )
     op.execute(
         """
