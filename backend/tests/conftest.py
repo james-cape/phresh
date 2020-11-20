@@ -20,9 +20,11 @@ from app.models.cleaning import CleaningCreate
 from app.models.cleaning import CleaningInDB
 from app.models.user import UserCreate
 from app.models.user import UserInDB
+from app.models.offer import OfferCreate
 
 from app.db.repositories.cleanings import CleaningsRepository
 from app.db.repositories.users import UsersRepository
+from app.db.repositories.offers import OffersRepository
 
 from app.core.config import SECRET_KEY
 from app.core.config import JWT_TOKEN_PREFIX
@@ -112,6 +114,24 @@ async def test_cleaning(db: Database, test_user: UserInDB) -> CleaningInDB:
     return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user)
 
 
+@pytest.fixture
+async def test_cleaning_with_offers(db: Database, test_user2: UserInDB, test_user_list: List[UserInDB]) -> CleaningInDB:
+    cleaning_repo = CleaningsRepository(db)
+    offers_repo = OffersRepository(db)
+    
+    new_cleaning = CleaningCreate(
+        name='cleaning with offers', description='desc for cleaning', price=9.99, cleaning_type='full_clean',
+    )
+
+    created_cleaning = await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user2)
+
+    for user in test_user_list:
+        await offers_repo.create_offer_for_cleaning(
+            new_offer=OfferCreate(cleaning_id=created_cleaning.id, user_id=user.id)
+        )
+    
+    return created_cleaning
+
 async def user_fixture_helper(*, db: Database, new_user: UserCreate) -> UserInDB:
     user_repo = UsersRepository(db)
 
@@ -161,7 +181,7 @@ async def test_user_list(
     test_user5: UserInDB,
     test_user6: UserInDB,
 ) -> List[UserInDB]:
-    return [test_user3, test_user4, test_user5, test6]
+    return [test_user3, test_user4, test_user5, test_user6]
 
 
 @pytest.fixture
