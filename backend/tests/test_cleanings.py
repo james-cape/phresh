@@ -12,11 +12,6 @@ from fastapi import status
 
 from databases import  Database
 
-# from starlette.status import HTTP_200_OK  # TODO: swap starlette for fastapi
-# from starlette.status import HTTP_201_CREATED  # TODO: swap starlette for fastapi
-# from starlette.status import HTTP_404_NOT_FOUND  # TODO: swap starlette for fastapi
-# from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY  # TODO: swap starlette for fastapi
-
 from app.db.repositories.cleanings import CleaningsRepository
 
 from app.models.cleaning import CleaningCreate
@@ -65,10 +60,6 @@ class TestCleaningsRoutes:
         assert res.status_code != status.HTTP_404_NOT_FOUND
         res = await client.delete(app.url_path_for('cleanings:delete-cleaning-by-id', cleaning_id=0))
         assert res.status_code != status.HTTP_404_NOT_FOUND
-
-    # async def test_invalid_input_raises_error(self, app: FastAPI, client: AsyncClient) -> None:
-    #     res = await client.post(app.url_path_for('cleanings:create-cleaning'), json={})
-    #     assert res.status_code == HTTP_422_UNPROCESSABLE_ENTITY
 
 
 class TestCreateCleaning:
@@ -275,9 +266,6 @@ class TestDeleteCleaning:
             app.url_path_for('cleanings:delete-cleaning-by-id', cleaning_id=test_cleaning.id)
         )
         assert res.status_code == status.HTTP_200_OK
-
-        # res = await authorized_client.get(app.url_path_for('cleanings:get-cleaning-by-id', id=test_cleaning.id))
-        # assert res.status_code == HTTP_404_NOT_FOUND
 
     async def test_user_cant_delete_other_users_cleaning(
         self, app: FastAPI, authorized_client: AsyncClient, test_cleanings_list: List[CleaningInDB],

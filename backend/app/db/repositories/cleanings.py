@@ -3,8 +3,6 @@ from typing import List
 from fastapi import HTTPException
 from fastapi import status
 
-from starlette.status import HTTP_400_BAD_REQUEST
-
 from app.db.repositories.base import BaseRepository
 
 from app.models.cleaning import CleaningCreate
@@ -38,13 +36,13 @@ UPDATE_CLEANING_BY_ID_QUERY = """
         description   = :description,
         price         = :price,
         cleaning_type = :cleaning_type
-    WHERE id = :id AND owner = :owner
+    WHERE id = :id
     RETURNING id, name, description, price, cleaning_type, owner, created_at, updated_at;
 """
 
 DELETE_CLEANING_BY_ID_QUERY = """
     DELETE FROM cleanings
-    WHERE id = :id and owner = :owner
+    WHERE id = :id
     RETURNING id;
 """
 
@@ -62,7 +60,6 @@ class CleaningsRepository(BaseRepository):
 
     async def get_cleaning_by_id(self, *, id: int, requesting_user: UserInDB) -> CleaningInDB:
         cleaning = await self.db.fetch_one(query=GET_CLEANING_BY_ID_QUERY, values={'id': id})
-
         if not cleaning:
             return None
 
@@ -77,50 +74,23 @@ class CleaningsRepository(BaseRepository):
         return [CleaningInDB(**cleaning) for cleaning in cleaning_records]
 
 
-    async def update_cleaning(
-        self, *, id: int, cleaning_update: CleaningUpdate, requesting_user: UserInDB
-    ) -> CleaningInDB:
-        cleaning = await self.get_cleaning_by_id(id=id, requesting_user=requesting_user)
-        if not cleaning:
-            return None
-        
-        if cleaning.owner != requesting_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Users are only able to update cleanings that they created.',
-            )
-        
+    async def update_cleaning(self, *, cleaning: CleaningInDB, cleaning_update: CleaningUpdate) -> CleaningInDB:
         cleaning_update_params = cleaning.copy(update=cleaning_update.dict(exclude_unset=True))
         if cleaning_update_params.cleaning_type is None:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail='Invalid cleaning type. Cannot be None.'
+                status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid cleaning type. Cannot be None.'
             )
-
 
         updated_cleaning = await self.db.fetch_one(
             query=UPDATE_CLEANING_BY_ID_QUERY,
-            values={
-                **cleaning_update_params.dict(exclude={'created_at', 'updated_at'}),
-                'owner': requesting_user.id,
-            },
+            values=cleaning_update_params.dict(exclude={'owner', 'created_at', 'updated_at'}),
         )
         return CleaningInDB(**updated_cleaning)
 
 
-    async def delete_cleaning_by_id(self, *, id: int, requesting_user: UserInDB) -> int:
-        cleaning = await self.get_cleaning_by_id(id=id, requesting_user=requesting_user)
-        if not cleaning:
-            return None
-        
-        if cleaning.owner != requesting_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail='Users are only able to delete cleanings that they created.',
-            )
-
+    async def delete_cleaning_by_id(self, *, cleaning: CleaningInDB) -> int:
         deleted_id = await self.db.execute(
-            query=DELETE_CLEANING_BY_ID_QUERY, values={'id': id, 'owner': requesting_user.id}
+            query=DELETE_CLEANING_BY_ID_QUERY, values={'id': cleaning.id}
         )
 
         return deleted_id
