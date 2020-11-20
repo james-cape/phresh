@@ -267,33 +267,42 @@ class TestUpdateCleaning:
         assert res.status_code == status_code
 
 
-# class TestDeleteCleaning:
-#     async def test_can_delete_cleaning_successfully(
-#         self, app: FastAPI, client: AsyncClient, test_cleaning: CleaningInDB
-#     ) -> None:
-#         # delete the cleaning
-#         res = await client.delete(app.url_path_for('cleanings:delete-cleaning-by-id', id=test_cleaning.id))
-#         assert res.status_code == HTTP_200_OK
-#         # ensure that the cleaning no longer exists
-#         res = await client.get(app.url_path_for('cleanings:get-cleaning-by-id', id=test_cleaning.id))
-#         assert res.status_code == HTTP_404_NOT_FOUND
+class TestDeleteCleaning:
+    async def test_can_delete_cleaning_successfully(
+        self, app: FastAPI, authorized_client: AsyncClient, test_cleaning: CleaningInDB
+    ) -> None:
+        res = await authorized_client.delete(
+            app.url_path_for('cleanings:delete-cleaning-by-id', cleaning_id=test_cleaning.id)
+        )
+        assert res.status_code == status.HTTP_200_OK
 
-#     @pytest.mark.parametrize(
-#         'id, status_code',
-#         (
-#             (500, 404),
-#             (0, 422),
-#             (-1, 422),
-#             (None, 422),
-#         ),
-#     )
-#     async def test_delete_cleaning_with_invalid_input_throws_error(
-#         self,
-#         app: FastAPI,
-#         client: AsyncClient,
-#         test_cleaning: CleaningInDB,
-#         id: int,
-#         status_code: int,
-#     ) -> None:
-#         res = await client.delete(app.url_path_for('cleanings:delete-cleaning-by-id', id=id))
-#         assert res.status_code == status_code
+        # res = await authorized_client.get(app.url_path_for('cleanings:get-cleaning-by-id', id=test_cleaning.id))
+        # assert res.status_code == HTTP_404_NOT_FOUND
+
+    async def test_user_cant_delete_other_users_cleaning(
+        self, app: FastAPI, authorized_client: AsyncClient, test_cleanings_list: List[CleaningInDB],
+    ) -> None:
+        res = await authorized_client.delete(
+            app.url_path_for('cleanings:delete-cleaning-by-id', cleaning_id=test_cleanings_list[0].id)
+        )
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.parametrize(
+        'id, status_code',
+        (
+            (5000000, 404),
+            (0, 422),
+            (-1, 422),
+            (None, 422),
+        ),
+    )
+    async def test_wrong_id_throws_error(
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_cleaning: CleaningInDB,
+        id: int,
+        status_code: int,
+    ) -> None:
+        res = await authorized_client.delete(app.url_path_for('cleanings:delete-cleaning-by-id', cleaning_id=id))
+        assert res.status_code == status_code

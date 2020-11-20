@@ -32,11 +32,6 @@ FROM cleanings
 WHERE owner = :owner;
 """
 
-# GET_ALL_CLEANINGS_QUERY = """
-#     SELECT id, name, description, price, cleaning_type
-#     FROM cleanings;
-# """
-
 UPDATE_CLEANING_BY_ID_QUERY = """
     UPDATE cleanings
     SET name          = :name,
@@ -49,7 +44,7 @@ UPDATE_CLEANING_BY_ID_QUERY = """
 
 DELETE_CLEANING_BY_ID_QUERY = """
     DELETE FROM cleanings
-    WHERE id = :id
+    WHERE id = :id and owner = :owner
     RETURNING id;
 """
 
@@ -113,12 +108,19 @@ class CleaningsRepository(BaseRepository):
         return CleaningInDB(**updated_cleaning)
 
 
-    async def delete_cleaning_by_id(self, *, id: int) -> int:
-        cleaning = await self.get_cleaning_by_id(id=id)
-
+    async def delete_cleaning_by_id(self, *, id: int, requesting_user: UserInDB) -> int:
+        cleaning = await self.get_cleaning_by_id(id=id, requesting_user=requesting_user)
         if not cleaning:
             return None
         
-        deleted_id = await self.db.execute(query=DELETE_CLEANING_BY_ID_QUERY, values={'id': id})
+        if cleaning.owner != requesting_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Users are only able to delete cleanings that they created.',
+            )
+
+        deleted_id = await self.db.execute(
+            query=DELETE_CLEANING_BY_ID_QUERY, values={'id': id, 'owner': requesting_user.id}
+        )
 
         return deleted_id

@@ -80,14 +80,15 @@ async def update_cleaning_by_id(
     return updated_cleaning
 
 
-# @router.delete('/{id}', response_model=int, name='cleanings:delete-cleaning-by-id')
-# async def delete_cleaning_by_id(
-#     id: int = Path(..., ge=1, title='The ID of the cleaning to delete.'),
-#     cleanings_repo: CleaningsRepository = Depends(get_repository(CleaningsRepository)),
-# ) -> int:
-#     deleted_id = await cleanings_repo.delete_cleaning_by_id(id=id)
+@router.delete('/{cleaning_id}', response_model=int, name='cleanings:delete-cleaning-by-id')
+async def delete_cleaning_by_id(
+    cleaning_id: int = Path(..., ge=1),
+    current_user: UserInDB = Depends(get_current_active_user),
+    cleanings_repo: CleaningsRepository = Depends(get_repository(CleaningsRepository)),
+) -> int:
+    deleted_id = await cleanings_repo.delete_cleaning_by_id(id=cleaning_id, requesting_user=current_user)
 
-#     if not deleted_id:
-#         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail='No cleaning found with that id.')
+    if not deleted_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No cleaning found with that id.')
     
-#     return deleted_id
+    return deleted_id
