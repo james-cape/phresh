@@ -97,7 +97,7 @@ async def client(app: FastAPI) -> AsyncClient:
 
 
 @pytest.fixture
-async def test_cleaning(db: Database) -> CleaningInDB:
+async def test_cleaning(db: Database, test_user: UserInDB) -> CleaningInDB:
     cleaning_repo = CleaningsRepository(db)
     new_cleaning = CleaningCreate(
         name='fake cleaning name',
@@ -106,7 +106,7 @@ async def test_cleaning(db: Database) -> CleaningInDB:
         cleaning_type='spot_clean',
     )
 
-    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning)
+    return await cleaning_repo.create_cleaning(new_cleaning=new_cleaning, requesting_user=test_user)
 
 
 @pytest.fixture

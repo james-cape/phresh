@@ -53,7 +53,8 @@ def create_cleanings_table() -> None:
         sa.Column("name", sa.Text, nullable=False, index=True),
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("cleaning_type", sa.Text, nullable=False, server_default="spot_clean"),
-        sa.Column("price", sa.Numeric(10, 2), nullable=False),
+        sa.Column("price", sa.Numeric(10, 5), nullable=False),
+        sa.Column("owner", sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE")),
         *timestamps(),
     )
     op.execute(
@@ -115,13 +116,13 @@ def create_profiles_table() -> None:
 
 def upgrade() -> None:
     create_updated_at_trigger()
-    create_cleanings_table()
     create_users_table()
     create_profiles_table()
+    create_cleanings_table()
 
 
 def downgrade() -> None:
+    op.drop_table('cleanings')
     op.drop_table('profiles')
     op.drop_table('users')
-    op.drop_table('cleanings')
     op.execute("DROP FUNCTION update_updated_at_column")
