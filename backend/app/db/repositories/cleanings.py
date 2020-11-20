@@ -21,15 +21,21 @@ CREATE_CLEANING_QUERY = """
 """
 
 GET_CLEANING_BY_ID_QUERY = """
-    SELECT id, name, description, price, cleaning_type
+    SELECT id, name, description, price, cleaning_type, owner, created_at, updated_at
     FROM cleanings
     WHERE id = :id;
 """
 
-GET_ALL_CLEANINGS_QUERY = """
-    SELECT id, name, description, price, cleaning_type
-    FROM cleanings;
+LIST_ALL_USER_CLEANINGS_QUERY = """
+SELECT id, name, description, price, cleaning_type, owner, created_at, updated_at
+FROM cleanings
+WHERE owner = :owner;
 """
+
+# GET_ALL_CLEANINGS_QUERY = """
+#     SELECT id, name, description, price, cleaning_type
+#     FROM cleanings;
+# """
 
 UPDATE_CLEANING_BY_ID_QUERY = """
     UPDATE cleanings
@@ -37,8 +43,8 @@ UPDATE_CLEANING_BY_ID_QUERY = """
         description   = :description,
         price         = :price,
         cleaning_type = :cleaning_type
-    WHERE id = :id
-    RETURNING id, name, description, price, cleaning_type;
+    WHERE id = :id AND owner = :owner
+    RETURNING id, name, description, price, cleaning_type, owner, created_at, updated_at;
 """
 
 DELETE_CLEANING_BY_ID_QUERY = """
@@ -59,7 +65,7 @@ class CleaningsRepository(BaseRepository):
         return CleaningInDB(**cleaning)
     
 
-    async def get_cleaning_by_id(self, *, id: int) -> CleaningInDB:
+    async def get_cleaning_by_id(self, *, id: int, requesting_user: UserInDB) -> CleaningInDB:
         cleaning = await self.db.fetch_one(query=GET_CLEANING_BY_ID_QUERY, values={'id': id})
 
         if not cleaning:
@@ -68,32 +74,43 @@ class CleaningsRepository(BaseRepository):
         return CleaningInDB(**cleaning)
     
 
-    async def get_all_cleanings(self) -> List[CleaningInDB]:
-        cleanings = await self.db.fetch_all(query=GET_ALL_CLEANINGS_QUERY)
+    async def list_all_user_cleanings(self, requesting_user: UserInDB) -> List[CleaningInDB]:
+        cleaning_records = await self.db.fetch_all(
+            query=LIST_ALL_USER_CLEANINGS_QUERY, values={'owner': requesting_user.id}
+        )
 
-        return [CleaningInDB(**cleaning) for cleaning in cleanings]
+        return [CleaningInDB(**cleaning) for cleaning in cleaning_records]
 
 
-    async def update_cleaning(self, *, id: int, cleaning_update: CleaningUpdate) -> CleaningInDB:
-        cleaning = await self.get_cleaning_by_id(id=id)
-
+    async def update_cleaning(
+        self, *, id: int, cleaning_update: CleaningUpdate, requesting_user: UserInDB
+    ) -> CleaningInDB:
+        cleaning = await self.get_cleaning_by_id(id=id, requesting_user=requesting_user)
         if not cleaning:
             return None
         
+        if cleaning.owner != requesting_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail='Users are only able to update cleanings that they created.',
+            )
+        
         cleaning_update_params = cleaning.copy(update=cleaning_update.dict(exclude_unset=True))
         if cleaning_update_params.cleaning_type is None:
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='Invalid cleaning type. Cannot be None.')
-
-
-        try:
-            updated_cleaning = await self.db.fetch_one(
-                query=UPDATE_CLEANING_BY_ID_QUERY,
-                values=cleaning_update_params.dict(),
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail='Invalid cleaning type. Cannot be None.'
             )
-            return CleaningInDB(**updated_cleaning)
-        except Exception as e:
-            print(e)
-            raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail='Invalid update params.')
+
+
+        updated_cleaning = await self.db.fetch_one(
+            query=UPDATE_CLEANING_BY_ID_QUERY,
+            values={
+                **cleaning_update_params.dict(exclude={'created_at', 'updated_at'}),
+                'owner': requesting_user.id,
+            },
+        )
+        return CleaningInDB(**updated_cleaning)
 
 
     async def delete_cleaning_by_id(self, *, id: int) -> int:
