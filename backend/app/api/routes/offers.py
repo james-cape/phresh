@@ -26,6 +26,8 @@ from app.api.dependencies.offers import (
     check_offer_get_permissions,
     check_offer_list_permissions,
     check_offer_acceptance_permissions,
+    check_offer_cancel_permissions,
+    get_offer_for_cleaning_from_current_user,
     get_offer_for_cleaning_from_user_by_path,
 )
 
@@ -86,12 +88,20 @@ async def accept_offer(
     offer: OfferInDB = Depends(get_offer_for_cleaning_from_user_by_path),
     offers_repo: OffersRepository = Depends(get_repository(OffersRepository)),
 ) -> OfferPublic:
-    return await offers_repo.accept_offer(offer=offer)
+    return await offers_repo.accept_offer(offer=offer, offer_update=OfferUpdate(status='accepted'))
 
 
-@router.put('/', response_model=OfferPublic, name='offers:cancel-offer-from-user')
-async def cancel_offer_from_user() -> OfferPublic:
-    return None
+@router.put(
+    '/',  # TODO: Why can't I put '/cancel/' here? Not sure why it matters since the route is referenced by name
+    response_model=OfferPublic,
+    name='offers:cancel-offer-from-user',
+    dependencies=[Depends(check_offer_cancel_permissions)],
+)
+async def cancel_offer(
+    offer: OfferInDB = Depends(get_offer_for_cleaning_from_current_user),
+    offers_repo: OffersRepository = Depends(get_repository(OffersRepository)),
+) -> OfferPublic:
+    return await offers_repo.cancel_offer(offer=offer, offer_update=OfferUpdate(status='cancelled'))
 
 
 @router.delete('/', response_model=int, name='offers:rescind-offer-from-user')

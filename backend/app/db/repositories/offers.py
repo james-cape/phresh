@@ -3,8 +3,6 @@ from typing import List
 from fastapi import HTTPException
 from fastapi import status
 
-# from asyncpg.exceptions import UniqueViolationError
-
 from app.db.repositories.base import BaseRepository
 
 from app.models.cleaning import CleaningInDB
@@ -49,6 +47,21 @@ REJECT_ALL_OTHER_OFFERS_QUERY = """
     AND status = 'pending'
 """
 
+CANCEL_OFFER_QUERY = """
+    UPDATE user_offers_for_cleanings
+    SET status = 'cancelled'
+    WHERE cleaning_id = :cleaning_id AND user_id = :user_id
+    RETURNING cleaning_id, user_id, status, created_at, updated_at;
+"""
+
+SET_ALL_OTHER_OFFERS_AS_PENDING_QUERY = """
+    UPDATE user_offers_for_cleanings
+    SET status = 'pending'
+    WHERE cleaning_id = :cleaning_id
+    AND user_id != :user_id
+    AND status = 'rejected';
+"""
+
 
 class OffersRepository(BaseRepository):
     async def create_offer_for_cleaning(self, *, new_offer: OfferCreate) -> OfferInDB:
@@ -80,7 +93,7 @@ class OffersRepository(BaseRepository):
         return OfferInDB(**offer_record)
     
 
-    async def accept_offer(self, *, offer=OfferInDB) -> OfferInDB:
+    async def accept_offer(self, *, offer=OfferInDB, offer_update: OfferUpdate) -> OfferInDB:
         async with self.db.transaction():
             accepted_offer = await self.db.fetch_one(
                 query=ACCEPT_OFFER_QUERY,  # accept current offer
@@ -93,3 +106,18 @@ class OffersRepository(BaseRepository):
             )
 
             return OfferInDB(**accepted_offer)
+
+
+    async def cancel_offer(self, *, offer: OfferInDB, offer_update: OfferUpdate) -> OfferInDB:
+        async with self.db.transaction():
+            cancelled_offer = await self.db.fetch_one(
+                query=CANCEL_OFFER_QUERY,  # cancel current offer
+                values={'cleaning_id': offer.cleaning_id, 'user_id': offer.user_id},
+            )
+
+            await self.db.execute(
+                query=SET_ALL_OTHER_OFFERS_AS_PENDING_QUERY,  # set all other offers to pending again
+                values={'cleaning_id': offer.cleaning_id, 'user_id': offer.user_id},
+            )
+
+            return OfferInDB(**cancelled_offer)

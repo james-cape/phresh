@@ -21,6 +21,8 @@ from app.models.offer import OfferUpdate
 from app.models.offer import OfferInDB
 from app.models.offer import OfferPublic
 
+from app.db.repositories.offers import OffersRepository
+
 pytestmark = pytest.mark.asyncio
 
 class TestOffersRoutes:
@@ -289,3 +291,68 @@ class TestAcceptOffers:
                 assert offer.status == 'accepted'
             else:
                 assert offer.status == 'rejected'
+
+
+class TestCancelOffers:
+    async def test_user_can_cancel_offer_after_it_has_been_accepted(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_cleaning_with_accepted_offer: CleaningInDB,
+    ) -> None:
+        accepted_user_client = create_authorized_client(user=test_user3)
+        res = await accepted_user_client.put(
+            app.url_path_for(
+                'offers:cancel-offer-from-user',
+                cleaning_id=test_cleaning_with_accepted_offer.id,
+            )
+        )
+        # breakpoint()
+        assert res.status_code == status.HTTP_200_OK
+        cancelled_offer = OfferPublic(**res.json())
+        assert cancelled_offer.status == 'cancelled'
+        assert cancelled_offer.user == test_user3.id
+        assert cancelled_offer.cleaning == test_cleaning_with_accepted_offer.id
+
+
+    async def test_only_accepted_offers_can_be_cancelled(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user4: UserInDB,
+        test_cleaning_with_accepted_offer: CleaningInDB,
+    ) -> None:
+        selected_user_client = create_authorized_client(user=test_user4)
+        res = await selected_user_client.put(
+            app.url_path_for(
+                'offers:cancel-offer-from-user',
+                cleaning_id=test_cleaning_with_accepted_offer.id,
+            )
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+    async def test_cancelling_offer_sets_all_others_to_pending(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_cleaning_with_accepted_offer: CleaningInDB,
+    ) -> None:
+        accepted_user_client = create_authorized_client(user=test_user3)
+        res = await accepted_user_client.put(
+            app.url_path_for(
+                'offers:cancel-offer-from-user',
+                cleaning_id=test_cleaning_with_accepted_offer.id,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+
+        offers_repo = OffersRepository(app.state._db)
+        offers = await offers_repo.list_offers_for_cleaning(cleaning=test_cleaning_with_accepted_offer)
+        for offer in offers:
+            if offer.user_id == test_user3.id:
+                assert offer.status == 'cancelled'
+            else:
+                assert offer.status == 'pending'
