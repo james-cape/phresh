@@ -25,6 +25,7 @@ from app.api.dependencies.offers import (
     check_offer_create_permissions,
     check_offer_get_permissions,
     check_offer_list_permissions,
+    check_offer_acceptance_permissions,
     get_offer_for_cleaning_from_user_by_path,
 )
 
@@ -75,9 +76,17 @@ async def get_offer_from_user(offer: OfferInDB = Depends(get_offer_for_cleaning_
     return offer
 
 
-@router.put('/{username}/', response_model=OfferPublic, name='offers:accept-offer-from-user')
-async def accept_offer_from_user(username:str = Path(..., min_length=3)) -> OfferPublic:
-    return None
+@router.put(
+    '/{username}/',
+    response_model=OfferPublic,
+    name='offers:accept-offer-from-user',
+    dependencies=[Depends(check_offer_acceptance_permissions)],
+)
+async def accept_offer(
+    offer: OfferInDB = Depends(get_offer_for_cleaning_from_user_by_path),
+    offers_repo: OffersRepository = Depends(get_repository(OffersRepository)),
+) -> OfferPublic:
+    return await offers_repo.accept_offer(offer=offer)
 
 
 @router.put('/', response_model=OfferPublic, name='offers:cancel-offer-from-user')

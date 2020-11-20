@@ -34,6 +34,21 @@ GET_OFFER_FOR_CLEANING_FROM_USER_QUERY = """
     WHERE cleaning_id = :cleaning_id and user_id = :user_id;
 """
 
+ACCEPT_OFFER_QUERY = """
+    UPDATE user_offers_for_cleanings
+    SET status = 'accepted'
+    WHERE cleaning_id = :cleaning_id AND user_id = :user_id
+    RETURNING cleaning_id, user_id, status, created_at, updated_at;
+"""
+
+REJECT_ALL_OTHER_OFFERS_QUERY = """
+    UPDATE user_offers_for_cleanings
+    SET status = 'rejected'
+    WHERE cleaning_id = :cleaning_id
+    AND user_id != :user_id
+    AND status = 'pending'
+"""
+
 
 class OffersRepository(BaseRepository):
     async def create_offer_for_cleaning(self, *, new_offer: OfferCreate) -> OfferInDB:
@@ -64,3 +79,17 @@ class OffersRepository(BaseRepository):
 
         return OfferInDB(**offer_record)
     
+
+    async def accept_offer(self, *, offer=OfferInDB) -> OfferInDB:
+        async with self.db.transaction():
+            accepted_offer = await self.db.fetch_one(
+                query=ACCEPT_OFFER_QUERY,  # accept current offer
+                values={'cleaning_id': offer.cleaning_id, 'user_id': offer.user_id},
+            )
+
+            await self.db.execute(
+                query=REJECT_ALL_OTHER_OFFERS_QUERY,  # reject all other offers
+                values={'cleaning_id': offer.cleaning_id, 'user_id': offer.user_id},
+            )
+
+            return OfferInDB(**accepted_offer)

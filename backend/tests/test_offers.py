@@ -182,3 +182,110 @@ class TestGetOffers:
             app.url_path_for('offers:list-offers-for-cleaning', cleaning_id=test_cleaning_with_offers.id)
         )
         assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+class TestAcceptOffers:
+    async def test_cleaning_owner_can_accept_offer_successfully(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user_list: List[UserInDB],
+        test_cleaning_with_offers: CleaningInDB,
+    ) -> None:
+        selected_user = random.choice(test_user_list)
+
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.put(
+            app.url_path_for(
+                'offers:accept-offer-from-user',
+                cleaning_id=test_cleaning_with_offers.id,
+                username=selected_user.username,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+        accepted_offer = OfferPublic(**res.json())
+        assert accepted_offer.status == 'accepted'
+        assert accepted_offer.user == selected_user.id
+        assert accepted_offer.cleaning == test_cleaning_with_offers.id
+
+
+    async def test_non_owner_forbidden_from_accepting_offer_for_cleaning(
+        self,
+        app: FastAPI,
+        authorized_client: AsyncClient,
+        test_user_list: List[UserInDB],
+        test_cleaning_with_offers: CleaningInDB,
+    ) -> None:
+        selected_user = random.choice(test_user_list)
+        res = await authorized_client.put(
+            app.url_path_for(
+                'offers:accept-offer-from-user',
+                cleaning_id=test_cleaning_with_offers.id,
+                username=selected_user.username,
+            )
+        )
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+    async def test_cleaning_owner_cant_accept_multiple_offers(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user_list: List[UserInDB],
+        test_cleaning_with_offers: CleaningInDB,
+    ) -> None:
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.put(
+            app.url_path_for(
+                'offers:accept-offer-from-user',
+                cleaning_id=test_cleaning_with_offers.id,
+                username=test_user_list[0].username,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+
+        res = await authorized_client.put(
+            app.url_path_for(
+                'offers:accept-offer-from-user',
+                cleaning_id=test_cleaning_with_offers.id,
+                username=test_user_list[1].username,
+            )
+        )
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+    async def test_accepting_one_offer_rejects_all_other_offers(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user2: UserInDB,
+        test_user_list: List[UserInDB],
+        test_cleaning_with_offers: CleaningInDB,
+    ) -> None:
+        selected_user = random.choice(test_user_list)
+
+        authorized_client = create_authorized_client(user=test_user2)
+        res = await authorized_client.put(
+            app.url_path_for(
+                'offers:accept-offer-from-user',
+                cleaning_id=test_cleaning_with_offers.id,
+                username=selected_user.username,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+
+        res = await authorized_client.get(
+            app.url_path_for(
+                'offers:list-offers-for-cleaning',
+                cleaning_id=test_cleaning_with_offers.id,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+        offers = [OfferPublic(**offer) for offer in res.json()]
+        for offer in offers:
+            if offer.user == selected_user.id:
+                assert offer.status == 'accepted'
+            else:
+                assert offer.status == 'rejected'
