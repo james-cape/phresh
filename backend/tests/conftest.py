@@ -138,6 +138,10 @@ async def test_cleaning_with_offers(db: Database, test_user2: UserInDB, test_use
 async def test_cleaning_with_accepted_offer(
     db: Database, test_user2: UserInDB, test_user3: UserInDB, test_user_list: List[UserInDB]
 ) -> CleaningInDB:
+    '''
+    We're creating a cleaning with offers from everyone in the test_user_list 
+    and having test_user2 accept the offer from test_user3.
+    '''
     cleaning_repo = CleaningsRepository(db)
     offers_repo = OffersRepository(db)
 

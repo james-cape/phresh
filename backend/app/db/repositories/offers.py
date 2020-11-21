@@ -62,6 +62,12 @@ SET_ALL_OTHER_OFFERS_AS_PENDING_QUERY = """
     AND status = 'rejected';
 """
 
+RESCIND_OFFER_QUERY = """
+    DELETE FROM user_offers_for_cleanings
+    WHERE cleaning_id = :cleaning_id
+    AND user_id = :user_id;
+"""
+
 
 class OffersRepository(BaseRepository):
     async def create_offer_for_cleaning(self, *, new_offer: OfferCreate) -> OfferInDB:
@@ -121,3 +127,10 @@ class OffersRepository(BaseRepository):
             )
 
             return OfferInDB(**cancelled_offer)
+
+
+    async def rescind_offer(self, *, offer: OfferInDB) -> int:
+        return await self.db.execute(
+            query=RESCIND_OFFER_QUERY,  # rescinding an offer deletes it as long as it's pending
+            values={'cleaning_id': offer.cleaning_id, 'user_id': offer.user_id},
+        )

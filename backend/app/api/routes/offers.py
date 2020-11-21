@@ -27,6 +27,7 @@ from app.api.dependencies.offers import (
     check_offer_list_permissions,
     check_offer_acceptance_permissions,
     check_offer_cancel_permissions,
+    check_offer_rescind_permissions,
     get_offer_for_cleaning_from_current_user,
     get_offer_for_cleaning_from_user_by_path,
 )
@@ -104,6 +105,14 @@ async def cancel_offer(
     return await offers_repo.cancel_offer(offer=offer, offer_update=OfferUpdate(status='cancelled'))
 
 
-@router.delete('/', response_model=int, name='offers:rescind-offer-from-user')
-async def rescind_offer_from_user() -> OfferPublic:
-    return None
+@router.delete(
+    '/',
+    response_model=int,
+    name='offers:rescind-offer-from-user',
+    dependencies=[Depends(check_offer_rescind_permissions)],
+)
+async def rescind_offer(
+    offer: OfferInDB = Depends(get_offer_for_cleaning_from_current_user),
+    offers_repo: OffersRepository = Depends(get_repository(OffersRepository)),
+) -> OfferPublic:
+    return await offers_repo.rescind_offer(offer=offer)
