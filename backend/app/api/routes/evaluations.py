@@ -19,6 +19,7 @@ from app.db.repositories.evaluations import EvaluationsRepository
 from app.api.dependencies.database import get_repository
 from app.api.dependencies.cleanings import get_cleaning_by_id_from_path
 from app.api.dependencies.users import get_user_by_username_from_path
+from app.api.dependencies.evaluations import check_evaluation_create_permissions
 
 
 router = APIRouter()
@@ -29,6 +30,7 @@ router = APIRouter()
     response_model=EvaluationPublic,
     name='evaluations:create-evaluation-for-cleaner',
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(check_evaluation_create_permissions)],
 )
 async def create_evaluation_for_cleaner(
     evaluation_create: EvaluationCreate = Body(..., embed=True),
