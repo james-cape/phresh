@@ -32,8 +32,13 @@ router = APIRouter()
 )
 async def create_evaluation_for_cleaner(
     evaluation_create: EvaluationCreate = Body(..., embed=True),
+    cleaning: CleaningInDB = Depends(get_cleaning_by_id_from_path),
+    cleaner: UserInDB = Depends(get_user_by_username_from_path),
+    evals_repo: EvaluationsRepository = Depends(get_repository(EvaluationsRepository)),
 ) -> EvaluationPublic:
-    return None
+    return await evals_repo.create_evaluation_for_cleaner(
+        evaluation_create=evaluation_create, cleaner=cleaner, cleaning=cleaning
+    )
 
 
 @router.get(
