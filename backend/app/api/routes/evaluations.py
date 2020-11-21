@@ -20,6 +20,8 @@ from app.api.dependencies.database import get_repository
 from app.api.dependencies.cleanings import get_cleaning_by_id_from_path
 from app.api.dependencies.users import get_user_by_username_from_path
 from app.api.dependencies.evaluations import check_evaluation_create_permissions
+from app.api.dependencies.evaluations import list_evaluations_for_cleaner_from_path
+from app.api.dependencies.evaluations import get_cleaner_evaluation_for_cleaning_from_path
 
 
 router = APIRouter()
@@ -48,16 +50,21 @@ async def create_evaluation_for_cleaner(
     response_model=List[EvaluationPublic],
     name='evaluations:list-evaluations-for-cleaner',
 )
-async def list_evaluations_for_cleaner() -> List[EvaluationPublic]:
-    return None
+async def list_evaluations_for_cleaner(
+    evaluations: List[EvaluationInDB] = Depends(list_evaluations_for_cleaner_from_path)
+) -> List[EvaluationPublic]:
+    return evaluations
 
 
 @router.get(
     '/stats/',
     response_model=EvaluationAggregate, name='evaluations:get-stats-for-cleaner',
 )
-async def get_status_for_cleaner() -> EvaluationAggregate:
-    return None
+async def get_status_for_cleaner(
+    cleaner: UserInDB = Depends(get_user_by_username_from_path),
+    evals_repo: EvaluationsRepository = Depends(get_repository(EvaluationsRepository)),
+) -> EvaluationAggregate:
+    return await evals_repo.get_cleaner_aggregates(cleaner=cleaner)
 
 
 @router.get(
@@ -65,5 +72,7 @@ async def get_status_for_cleaner() -> EvaluationAggregate:
     response_model=EvaluationPublic,
     name='evaluations:get-evaluation-for-cleaner',
 )
-async def get_evaluation_for_cleaner() -> EvaluationPublic:
-    return None
+async def get_evaluation_for_cleaner(
+    evaluation: EvaluationInDB = Depends(get_cleaner_evaluation_for_cleaning_from_path),
+) -> EvaluationPublic:
+    return evaluation

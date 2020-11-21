@@ -8,6 +8,7 @@ from fastapi import status
 from app.models.user import UserInDB
 from app.models.cleaning import CleaningInDB
 from app.models.offer import OfferInDB
+from app.models.evaluation import EvaluationInDB
 
 from app.db.repositories.evaluations import EvaluationsRepository
 
@@ -43,3 +44,24 @@ async def check_evaluation_create_permissions(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='You are not authorized to leave an evaluation for this user.',
         )
+
+
+async def list_evaluations_for_cleaner_from_path(
+    cleaner: UserInDB = Depends(get_user_by_username_from_path),
+    evals_repo: EvaluationsRepository = Depends(get_repository(EvaluationsRepository)),
+) -> List[EvaluationInDB]:
+
+    return await evals_repo.list_evaluations_for_cleaner(cleaner=cleaner)
+
+
+async def get_cleaner_evaluation_for_cleaning_from_path(
+    cleaning: CleaningInDB = Depends(get_cleaning_by_id_from_path),
+    cleaner: UserInDB = Depends(get_user_by_username_from_path),
+    evals_repo: EvaluationsRepository = Depends(get_repository(EvaluationsRepository)),
+) -> EvaluationInDB:
+    evaluation = await evals_repo.get_cleaner_evaluation_for_cleaning(cleaning=cleaning, cleaner=cleaner)
+
+    if not evaluation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No evaluation found for that cleaning.')
+
+    return evaluation

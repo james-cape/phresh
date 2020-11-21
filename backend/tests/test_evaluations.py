@@ -5,6 +5,8 @@ import pytest
 
 from httpx import AsyncClient
 
+from statistics import mean
+
 from fastapi import FastAPI
 from fastapi import status
 
@@ -12,7 +14,9 @@ from app.models.cleaning import CleaningInDB
 from app.models.user import UserInDB
 from app.models.offer import OfferInDB
 from app.models.evaluation import EvaluationCreate
+from app.models.evaluation import EvaluationPublic
 from app.models.evaluation import EvaluationInDB
+from app.models.evaluation import EvaluationAggregate
 from app.db.repositories.evaluations import EvaluationsRepository
 
 
@@ -157,3 +161,118 @@ Though the cleaner took their time, I would definitely hire them again for the q
             json={"evaluation_create": {"overall_rating": 1}},
         )
         assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+class TestGetEvaluations:
+    """
+    Test that authenticated user who is not owner or cleaner can fetch a single evaluation
+    Test that authenticated user can fetch all of a cleaner's evaluations
+    Test that a cleaner's evaluations comes with an aggregate
+    """
+    async def test_authenticated_user_can_get_evaluation_for_cleaning(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_user4: UserInDB,
+        test_list_of_cleanings_with_evaluated_offer: List[CleaningInDB],
+    ) -> None:
+        authorized_client = create_authorized_client(user=test_user4)
+        res = await authorized_client.get(
+            app.url_path_for(
+                'evaluations:get-evaluation-for-cleaner',
+                cleaning_id=test_list_of_cleanings_with_evaluated_offer[0].id,
+                username=test_user3.username,
+            )
+        )
+        assert res.status_code == status.HTTP_200_OK
+        evaluation = EvaluationPublic(**res.json())
+        assert evaluation.cleaning == test_list_of_cleanings_with_evaluated_offer[0].id
+        assert evaluation.cleaner == test_user3.id
+        assert 'test headline' in evaluation.headline
+        assert 'test comment' in evaluation.comment
+        assert evaluation.professionalism >= 0 and evaluation.professionalism <= 5
+        assert evaluation.completeness >= 0 and evaluation.completeness <= 5
+        assert evaluation.efficiency >= 0 and evaluation.efficiency <= 5
+        assert evaluation.overall_rating >= 0 and evaluation.overall_rating <= 5
+
+
+    async def test_authenticated_user_can_get_evaluation_for_cleaner(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_user4: UserInDB,
+        test_list_of_cleanings_with_evaluated_offer: List[CleaningInDB],
+    ) -> None:
+        authorized_client = create_authorized_client(user=test_user4)
+        res = await authorized_client.get(
+            app.url_path_for('evaluations:list-evaluations-for-cleaner', username=test_user3.username)
+        )
+        assert res.status_code == status.HTTP_200_OK
+        evaluations = [EvaluationPublic(**evaluation) for evaluation in res.json()]
+        assert len(evaluations) > 1
+        for evaluation in evaluations:
+            assert evaluation.cleaner == test_user3.id
+            assert evaluation.overall_rating >= 0
+
+
+    async def test_authenticated_user_can_get_aggregate_stats_for_cleaner(
+        self,
+        app: FastAPI,
+        create_authorized_client: Callable,
+        test_user3: UserInDB,
+        test_user4: UserInDB,
+        test_list_of_cleanings_with_evaluated_offer: List[CleaningInDB],
+    ) -> None:
+        authorized_client = create_authorized_client(user=test_user4)
+        res = await authorized_client.get(
+            app.url_path_for('evaluations:list-evaluations-for-cleaner', username=test_user3.username)
+        )
+        assert res.status_code == status.HTTP_200_OK
+        evaluations = [EvaluationPublic(**evaluation) for evaluation in res.json()]
+
+        res = await authorized_client.get(
+            app.url_path_for('evaluations:get-stats-for-cleaner', username=test_user3.username)
+        )
+        assert res.status_code == status.HTTP_200_OK
+        stats = EvaluationAggregate(**res.json())
+
+        assert len(evaluations) == stats.total_evaluations
+        assert max([e.overall_rating for e in evaluations]) == stats.max_overall_rating
+        assert min([e.overall_rating for e in evaluations]) == stats.min_overall_rating
+        assert min([e.overall_rating for e in evaluations]) == stats.min_overall_rating
+        assert mean([e.overall_rating for e in evaluations]) == stats.avg_overall_rating
+        assert (
+            mean([e.professionalism for e in evaluations if e.professionalism is not None]) == stats.avg_professionalism
+        )
+        assert mean([e.completeness for e in evaluations if e.completeness is not None]) == stats.avg_completeness
+        assert mean([e.efficiency for e in evaluations if e.efficiency is not None]) == stats.avg_efficiency
+        assert len([e for e in evaluations if e.overall_rating == 1]) == stats.one_stars
+        assert len([e for e in evaluations if e.overall_rating == 2]) == stats.two_stars
+        assert len([e for e in evaluations if e.overall_rating == 3]) == stats.three_stars
+        assert len([e for e in evaluations if e.overall_rating == 4]) == stats.four_stars
+        assert len([e for e in evaluations if e.overall_rating == 5]) == stats.five_stars
+
+    async def test_unauthenticated_user_forbidden_from_get_requests(
+        self,
+        app: FastAPI,
+        client: AsyncClient,
+        test_user3: UserInDB,
+        test_list_of_cleanings_with_evaluated_offer: List[CleaningInDB],
+    ) -> None:
+        res = await client.get(
+            app.url_path_for(
+                'evaluations:get-evaluation-for-cleaner',
+                cleaning_id=test_list_of_cleanings_with_evaluated_offer[0].id,
+                username=test_user3.username,
+            )
+        )
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+        res = await client.get(
+            app.url_path_for(
+                'evaluations:list-evaluations-for-cleaner', username=test_user3.username,
+            )
+        )
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
