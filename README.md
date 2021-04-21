@@ -74,3 +74,5 @@ postgres=# SELECT * FROM cleanings;
 (0 rows)
 ```
 
+### Frontend
+1. From `phresh/phresh-frontend`, run `yarn start` to launch frontend server
