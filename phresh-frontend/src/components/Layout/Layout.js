@@ -9,7 +9,7 @@ import "../../assets/css/override.css"
 
 const customTheme = {
   ...euiVars,
-  euiTitleColor: "dodgerblue",
+  euiTitleColor: "dodgerblue"
 }
 
 const StyledLayout = styled.div`
@@ -48,4 +48,3 @@ export default function Layout({ children }) {
     </React.Fragment>
   )
 }
-
