@@ -7,7 +7,7 @@ import {
   EuiHeaderSectionItem,
   EuiHeaderSectionItemButton,
   EuiHeaderLinks,
-  EuiHeaderLink,
+  EuiHeaderLink
 } from "@elastic/eui"
 import loginIcon from "../../assets/img/loginIcon.svg"
 import styled from "styled-components"
@@ -54,4 +54,3 @@ export default function Navbar({ user, ...props }) {
     </EuiHeader>
   )
 }
-

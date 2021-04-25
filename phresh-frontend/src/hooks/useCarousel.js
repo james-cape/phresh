@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react"
 
 export function useCarousel(items, interval) {
@@ -15,4 +16,3 @@ export function useCarousel(items, interval) {
 
   return { current, setShouldAnimate, timeoutRef }
 }
-

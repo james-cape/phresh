@@ -5,18 +5,18 @@ import {
   EuiPageContent,
   EuiPageContentBody,
   EuiFlexGroup,
-  EuiFlexItem,
+  EuiFlexItem
 } from "@elastic/eui"
 import { Carousel, CarouselTitle } from "../../components"
 import { useCarousel } from "../../hooks/useCarousel"
-import pen from "../../assets/img/120-power-of-pen.svg"
-import gymTime from "../../assets/img/103-gym-time.svg"
-import macbook from "../../assets/img/118-macbook.svg"
-import workFromHome from "../../assets/img/122-work-from-home-2.svg"
-import gamingMouse from "../../assets/img/day3-gaming-mouse.svg"
-import vintageCamera from "../../assets/img/day7-vintage-camera.svg"
-import forklift from "../../assets/img/day14-forklift.svg"
-import owl from "../../assets/img/day22-owl.svg"
+import heroGirl from "../../assets/img/HeroGirl.svg"
+import dorm from "../../assets/img/Bed.svg"
+import bedroom from "../../assets/img/Bedroom.svg"
+import bathroom from "../../assets/img/Bathroom.svg"
+import livingRoom from "../../assets/img/Living_room_interior.svg"
+import kitchen from "../../assets/img/Kitchen.svg"
+import readingRoom from "../../assets/img/Reading_room.svg"
+import tvRoom from "../../assets/img/TV_room.svg"
 import styled from "styled-components"
 
 const StyledEuiPage = styled(EuiPage)`
@@ -43,13 +43,13 @@ const StyledEuiPageContentBody = styled(EuiPageContentBody)`
 `
 
 const carouselItems = [
-  { label: 'gym time', content: <img src={gymTime} alt='gym time' /> },
-  { label: 'macbook', content: <img src={macbook} alt='macbook' /> },
-  { label: 'work from home', content: <img src={workFromHome} alt='work from home' /> },
-  { label: 'gaming mouse', content: <img src={gamingMouse} alt='gaming mouse' /> },
-  { label: 'vintage camera', content: <img src={vintageCamera} alt='vintage camera' /> },
-  { label: 'forklift', content: <img src={forklift} alt='forklift' /> },
-  { label: 'owl', content: <img src={owl} alt='owl' /> },
+  { label: "dorm room", content: <img src={dorm} alt="dorm room" /> },
+  { label: "bedroom", content: <img src={bedroom} alt="bedroom" /> },
+  { label: "bathroom", content: <img src={bathroom} alt="bathroom" /> },
+  { label: "living room", content: <img src={livingRoom} alt="living room" /> },
+  { label: "kitchen", content: <img src={kitchen} alt="kitchen" /> },
+  { label: "reading room", content: <img src={readingRoom} alt="reading room" /> },
+  { label: "tv room", content: <img src={tvRoom} alt="tv room" /> }
 ]
 
 export default function LandingPage() {
@@ -74,7 +74,7 @@ export default function LandingPage() {
           <EuiFlexItem>
             <StyledEuiPageContent horizontalPosition="center" verticalPosition="center">
               <StyledEuiPageContentBody>
-                <img src={pen} alt="pen" />
+                <img src={heroGirl} alt="girl" />
               </StyledEuiPageContentBody>
             </StyledEuiPageContent>
           </EuiFlexItem>
