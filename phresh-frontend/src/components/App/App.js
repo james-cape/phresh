@@ -1,10 +1,20 @@
 import React from "react"
-import { LandingPage, Layout } from "../../components"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { LandingPage, Layout, LoginPage, NotFoundPage, ProfilePage, RegistrationPage } from "../../components"
 
 export default function App() {
   return (
-    <Layout>
-      <LandingPage />
-    </Layout>
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/registration" element={<RegistrationPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   )
 }
+
