@@ -1,4 +1,6 @@
 import React from "react"
+import { connect } from "react-redux"
+import { Actions as authActions } from "../../redux/auth" 
 import {
   EuiButton,
   EuiFieldText,
@@ -18,10 +20,7 @@ const NeedAccountLink = styled.span`
   font-size: 0.8rem;
 `
 
-export default function LoginForm({
-  requestUserLogin = async ({ email, password }) =>
-    console.log(`Logging in with ${email} and ${password}.`)
-}) {
+function LoginForm({ isLoading, requestUserLogin }) {
   const [form, setForm] = React.useState({
     email: "",
     password: ""
@@ -96,7 +95,7 @@ export default function LoginForm({
           />
         </EuiFormRow>
         <EuiSpacer />
-        <EuiButton type="submit" fill>
+        <EuiButton type="submit" fill isLoading={isLoading}>
           Submit
         </EuiButton>
       </EuiForm>
@@ -110,3 +109,10 @@ export default function LoginForm({
   )
 }
 
+const mapStateToProps = (state) => ({
+  isLoading: state.auth.isLoading
+})
+const mapDispatchToProps = (dispatch) => ({
+  requestUserLogin: ({ email, password }) => dispatch(authActions.requestUserLogin({ email, password }))
+})
+export default connect(mapStateToProps, mapDispatchToProps)(LoginForm)
