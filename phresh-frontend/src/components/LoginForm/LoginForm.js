@@ -1,6 +1,7 @@
 import React from "react"
 import { connect } from "react-redux"
-import { Actions as authActions, REQUEST_LOGIN_SUCCESS } from "../../redux/auth"  
+import { Actions as authActions, FETCHING_USER_FROM_TOKEN_SUCCESS } from "../../redux/auth"
+import { useNavigate } from "react-router-dom"
 import {
   EuiButton,
   EuiFieldText,
@@ -20,7 +21,7 @@ const NeedAccountLink = styled.span`
   font-size: 0.8rem;
 `
 
-function LoginForm({ authError, isLoading, requestUserLogin }) {
+function LoginForm({ user, authError, isLoading, isAuthenticated, requestUserLogin }) {
   const [errors, setErrors] = React.useState({})
   const [hasSubmitted, setHasSubmitted] = React.useState(false)
   
@@ -36,16 +37,24 @@ function LoginForm({ authError, isLoading, requestUserLogin }) {
     // set an error if the validation function did NOT return true
     setErrors((errors) => ({ ...errors, [label]: !isValid }))
   }
-
+  
   const handleInputChange = (label, value) => {
     validateInput(label, value)
-
+    
     setForm((form) => ({ ...form, [label]: value }))
   }
 
+  const navigate = useNavigate()
+  // if the user is already authenticated, redirect them to the "/profile" page
+
+  React.useEffect(() => {
+    if (user?.email && isAuthenticated) {
+      navigate("/profile")
+    }
+  }, [user, navigate, isAuthenticated])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     // validate inputs before submitting
     Object.keys(form).forEach((label) => validateInput(label, form[label]))
     // if any input hasn't been entered in, return early
@@ -57,7 +66,9 @@ function LoginForm({ authError, isLoading, requestUserLogin }) {
     setHasSubmitted(true)
     const action = await requestUserLogin({ email: form.email, password: form.password })
     // reset the password form state if the login attempt is not successful
-    if (action?.type !== REQUEST_LOGIN_SUCCESS) setForm(form => ({ ...form, password: "" }))
+    if (action?.type !== FETCHING_USER_FROM_TOKEN_SUCCESS) {
+      setForm(form => ({ ...form, password: "" }))
+    }
   }
 
   const getFormErrors = () => {
@@ -127,7 +138,9 @@ function LoginForm({ authError, isLoading, requestUserLogin }) {
 
 const mapStateToProps = (state) => ({
   authError: state.auth.error,
-  isLoading: state.auth.isLoading
+  isLoading: state.auth.isLoading,
+  isAuthenticated: state.auth.isAuthenticated,
+  user: state.auth.user,
 })
 const mapDispatchToProps = (dispatch) => ({
   requestUserLogin: ({ email, password }) => dispatch(authActions.requestUserLogin({ email, password }))

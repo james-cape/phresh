@@ -1,4 +1,5 @@
 import { configureStore, getDefaultMiddleware } from "@reduxjs/toolkit"
+import { Actions as authActions } from "./auth"  
 import rootReducer from "./rootReducer"
 
 export default function configureReduxStore() {
@@ -6,6 +7,8 @@ export default function configureReduxStore() {
     reducer: rootReducer,
     middleware: [...getDefaultMiddleware()],
   })
+
+  store.dispatch(authActions.fetchUserFromToken())  
 
   // enable hot reloading in development
   if (process.env.NODE_ENV !== "production" && module.hot) {

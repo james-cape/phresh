@@ -8,51 +8,8 @@ docker-compose up -d --build
 ### Run Docker
 docker-compose up
 
-## GET All Cleanings
-#### Example request
-GET http://localhost:8000/api/cleanings/
-
-#### Expected Response - 200
-[{"id":1,"name":"My house","cleaning_type":"full_clean","price_per_hour":29.99},{"id":2,"name":"Someone else's house","cleaning_type":"spot_clean","price_per_hour":19.99}]
-
-## POST Create Cleaning
-#### Example request
-POST http://localhost:8000/api/cleanings/
-```
-Body: {
-  "new_cleaning": {
-    "name": "string",
-    "description": "string",
-    "price": 0,
-    "cleaning_type": "spot_clean"
-  }
-}
-```
-
-#### Expected Response - 201
-```
-{
-  "name": "string",
-  "description": "string",
-  "price": 0,
-  "cleaning_type": "spot_clean",
-  "id": 0
-}
-```
-#### Expected Response - 422
-```
-{
-  "detail": [
-    {
-      "loc": [
-        "string"
-      ],
-      "msg": "string",
-      "type": "string"
-    }
-  ]
-}
-```
+## Backend Endpoint Docs
+http://localhost:8000/docs
 
 ### Interact with Docker server container using bash commands
 1. In a new Terminal run `docker ps`
