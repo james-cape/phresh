@@ -1,4 +1,5 @@
 import initialState from "./initialState"
+import axios from "axios" 
 
 export const REQUEST_LOGIN = "@@auth/REQUEST_LOGIN"
 export const REQUEST_LOGIN_FAILURE = "@@auth/REQUEST_LOGIN_FAILURE"
@@ -37,7 +38,37 @@ export default function authReducer(state = initialState.auth, action = {}) {
 export const Actions = {}
 
 Actions.requestUserLogin = ({ email, password }) => {
-  return { type: REQUEST_LOGIN }
+  return async (dispatch) => {
+    // set redux state to loading while we wait for server response
+    dispatch({ type: REQUEST_LOGIN })
+    // create the url-encoded form data
+    const formData = new FormData()
+    formData.set("username", email)
+    formData.set("password", password)
+    // set the request headers
+    const headers = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    }
+    try {
+      // make the actual HTTP request to our API
+      const res = await axios({
+        method: `POST`,
+        url: `http://localhost:8000/api/users/login/token/`,
+        data: formData,
+        headers,
+      })
+      console.log(res)
+      // stash the access_token our server returns
+      const access_token = res?.data?.access_token
+      localStorage.setItem("access_token", access_token)
+      // dispatch the success action
+      return dispatch({ type: REQUEST_LOGIN_SUCCESS })
+    } catch (error) {
+      console.log(error)
+      // dispatch the failure action
+      return dispatch({ type: REQUEST_LOGIN_FAILURE, error: error?.message })
+    }
+  }
 }
 
 Actions.logUserOut = () => {

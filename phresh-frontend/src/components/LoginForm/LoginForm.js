@@ -1,6 +1,6 @@
 import React from "react"
 import { connect } from "react-redux"
-import { Actions as authActions } from "../../redux/auth" 
+import { Actions as authActions, REQUEST_LOGIN_SUCCESS } from "../../redux/auth"  
 import {
   EuiButton,
   EuiFieldText,
@@ -20,12 +20,14 @@ const NeedAccountLink = styled.span`
   font-size: 0.8rem;
 `
 
-function LoginForm({ isLoading, requestUserLogin }) {
+function LoginForm({ authError, isLoading, requestUserLogin }) {
+  const [errors, setErrors] = React.useState({})
+  const [hasSubmitted, setHasSubmitted] = React.useState(false)
+  
   const [form, setForm] = React.useState({
     email: "",
     password: ""
   })
-  const [errors, setErrors] = React.useState({})
 
   const validateInput = (label, value) => {
     // grab validation function and run it on input if it exists
@@ -52,7 +54,21 @@ function LoginForm({ isLoading, requestUserLogin }) {
       return
     }
 
-    await requestUserLogin({ email: form.email, password: form.password })
+    setHasSubmitted(true)
+    const action = await requestUserLogin({ email: form.email, password: form.password })
+    // reset the password form state if the login attempt is not successful
+    if (action?.type !== REQUEST_LOGIN_SUCCESS) setForm(form => ({ ...form, password: "" }))
+  }
+
+  const getFormErrors = () => {
+    const formErrors = []
+    if (authError && hasSubmitted) {
+      formErrors.push(`Invalid credentials. Please try again.`)
+    }
+    if (errors.form) {
+      formErrors.push(errors.form)
+    }
+    return formErrors
   }
 
   return (
@@ -60,8 +76,8 @@ function LoginForm({ isLoading, requestUserLogin }) {
       <EuiForm
         component="form"
         onSubmit={handleSubmit}
-        isInvalid={Boolean(errors.form)}
-        error={errors.form}
+        isInvalid={Boolean(getFormErrors().length)}
+        error={getFormErrors()}
       >
         <EuiFormRow
           label="Email"
@@ -110,6 +126,7 @@ function LoginForm({ isLoading, requestUserLogin }) {
 }
 
 const mapStateToProps = (state) => ({
+  authError: state.auth.error,
   isLoading: state.auth.isLoading
 })
 const mapDispatchToProps = (dispatch) => ({
