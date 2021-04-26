@@ -1,4 +1,7 @@
 import React from "react"
+import { connect } from "react-redux"
+import { Actions as authActions, FETCHING_USER_FROM_TOKEN_SUCCESS } from "../../redux/auth"
+import { useNavigate } from "react-router-dom"
 import {
   EuiButton,
   EuiFieldText,
@@ -18,15 +21,14 @@ const NeedAccountLink = styled.span`
   font-size: 0.8rem;
 `
 
-export default function LoginForm({
-  requestUserLogin = async ({ email, password }) =>
-    console.log(`Logging in with ${email} and ${password}.`)
-}) {
+function LoginForm({ user, authError, isLoading, isAuthenticated, requestUserLogin }) {
+  const [errors, setErrors] = React.useState({})
+  const [hasSubmitted, setHasSubmitted] = React.useState(false)
+  
   const [form, setForm] = React.useState({
     email: "",
     password: ""
   })
-  const [errors, setErrors] = React.useState({})
 
   const validateInput = (label, value) => {
     // grab validation function and run it on input if it exists
@@ -35,16 +37,24 @@ export default function LoginForm({
     // set an error if the validation function did NOT return true
     setErrors((errors) => ({ ...errors, [label]: !isValid }))
   }
-
+  
   const handleInputChange = (label, value) => {
     validateInput(label, value)
-
+    
     setForm((form) => ({ ...form, [label]: value }))
   }
 
+  const navigate = useNavigate()
+  // if the user is already authenticated, redirect them to the "/profile" page
+
+  React.useEffect(() => {
+    if (user?.email && isAuthenticated) {
+      navigate("/profile")
+    }
+  }, [user, navigate, isAuthenticated])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-
     // validate inputs before submitting
     Object.keys(form).forEach((label) => validateInput(label, form[label]))
     // if any input hasn't been entered in, return early
@@ -53,7 +63,23 @@ export default function LoginForm({
       return
     }
 
-    await requestUserLogin({ email: form.email, password: form.password })
+    setHasSubmitted(true)
+    const action = await requestUserLogin({ email: form.email, password: form.password })
+    // reset the password form state if the login attempt is not successful
+    if (action?.type !== FETCHING_USER_FROM_TOKEN_SUCCESS) {
+      setForm(form => ({ ...form, password: "" }))
+    }
+  }
+
+  const getFormErrors = () => {
+    const formErrors = []
+    if (authError && hasSubmitted) {
+      formErrors.push(`Invalid credentials. Please try again.`)
+    }
+    if (errors.form) {
+      formErrors.push(errors.form)
+    }
+    return formErrors
   }
 
   return (
@@ -61,8 +87,8 @@ export default function LoginForm({
       <EuiForm
         component="form"
         onSubmit={handleSubmit}
-        isInvalid={Boolean(errors.form)}
-        error={errors.form}
+        isInvalid={Boolean(getFormErrors().length)}
+        error={getFormErrors()}
       >
         <EuiFormRow
           label="Email"
@@ -96,7 +122,7 @@ export default function LoginForm({
           />
         </EuiFormRow>
         <EuiSpacer />
-        <EuiButton type="submit" fill>
+        <EuiButton type="submit" fill isLoading={isLoading}>
           Submit
         </EuiButton>
       </EuiForm>
@@ -110,3 +136,13 @@ export default function LoginForm({
   )
 }
 
+const mapStateToProps = (state) => ({
+  authError: state.auth.error,
+  isLoading: state.auth.isLoading,
+  isAuthenticated: state.auth.isAuthenticated,
+  user: state.auth.user,
+})
+const mapDispatchToProps = (dispatch) => ({
+  requestUserLogin: ({ email, password }) => dispatch(authActions.requestUserLogin({ email, password }))
+})
+export default connect(mapStateToProps, mapDispatchToProps)(LoginForm)
